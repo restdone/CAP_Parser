@@ -15,4 +15,8 @@ Step 3. Read it
 ```
 python cap_parser.py
 ```
-Under the MFA Exclusion Summary, it wil show what group or user excluded from MFA
+Under the MFA Exclusion Summary, it wil show what group or user excluded like:
+ 1. Excluded from Conditional Access Policy (MFA)
+ 2. Excludeded from location
+ 3. Excluded from builtIncontrol (using operator OR)
+    
