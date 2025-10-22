@@ -24,6 +24,7 @@ def summarize_policy(policy: dict):
 
     built_in_controls = grant_controls.get("builtInControls", [])
     custom_controls = grant_controls.get("customAuthenticationFactors", [])
+    operator = grant_controls.get("operator", "AND")  # Default is AND
 
     return {
         "Name": name,
@@ -34,17 +35,18 @@ def summarize_policy(policy: dict):
         "Included Applications": apps.get("includeApplications", []),
         "Excluded Applications": apps.get("excludeApplications", []),
         "Grant Controls": built_in_controls + custom_controls,
+        "Grant Operator": operator,
         "Session Controls": list(session_controls.keys()) if session_controls else [],
         "User Risk Levels": user_risk,
         "Sign-in Risk Levels": signin_risk,
         "Device Platforms": {
             "include": device_platforms.get("includePlatforms", []),
-            "exclude": device_platforms.get("excludePlatforms", []),
+            "exclude": device_platforms.get("excludePlatforms", [])
         },
         "Locations": {
             "include": locations.get("includeLocations", []),
-            "exclude": locations.get("excludeLocations", []),
-        },
+            "exclude": locations.get("excludeLocations", [])
+        }
     }
 
 def is_mfa_policy(summary):
@@ -53,12 +55,13 @@ def is_mfa_policy(summary):
     return any("mfa" in str(g).lower() or "multifactor" in str(g).lower() for g in grants)
 
 def print_summary(policies):
-    """Prints policy summaries and flags security-relevant conditions."""
+    """Print policies and flag security-relevant conditions."""
     for i, policy in enumerate(policies, start=1):
         summary = summarize_policy(policy)
         print(f"\nPolicy {i}: {summary['Name']}")
         print(f"  State: {summary['State']}")
         print(f"  Grant Controls: {summary['Grant Controls']}")
+        print(f"  Grant Operator: {summary['Grant Operator']}")
         print(f"  Session Controls: {summary['Session Controls']}")
 
         # --- MFA Enforcement
@@ -96,30 +99,44 @@ def print_summary(policies):
         if exclude_loc:
             print(f"  ⚠️  Excluded Locations: {exclude_loc}")
 
+        # --- Grant Operator OR
+        if summary.get("Grant Operator") == "OR":
+            print(f"  ⚠️  Grant Controls operator is OR, builtInControls: {summary['Grant Controls']}")
+
 def generate_security_flags(policies):
-    """Generate structured list of security-relevant conditions."""
+    """Return a structured list of security-relevant conditions."""
     findings = []
     for policy in policies:
         summary = summarize_policy(policy)
         issues = []
 
+        # MFA exclusions
         if is_mfa_policy(summary):
             excluded = summary.get("Excluded Users", []) + summary.get("Included Groups", [])
             if excluded:
                 issues.append(f"Excludes identities from MFA: {excluded}")
 
+        # Risk levels
         if summary["User Risk Levels"]:
             issues.append(f"Applies User Risk Levels: {summary['User Risk Levels']}")
         if summary["Sign-in Risk Levels"]:
             issues.append(f"Applies Sign-in Risk Levels: {summary['Sign-in Risk Levels']}")
+
+        # Device platforms
         if summary["Device Platforms"]["include"] and summary["Device Platforms"]["include"] != ["all"]:
             issues.append(f"Restricted to Device Platforms: {summary['Device Platforms']['include']}")
         if summary["Device Platforms"]["exclude"]:
-            issues.append(f"Excludes Device Platforms: {summary['Device Platforms']['exclude']}")
+            issues.append(f"Excluded Device Platforms: {summary['Device Platforms']['exclude']}")
+
+        # Locations
         if summary["Locations"]["include"] and summary["Locations"]["include"] != ["all"]:
             issues.append(f"Restricted to Locations: {summary['Locations']['include']}")
         if summary["Locations"]["exclude"]:
-            issues.append(f"Excludes Locations: {summary['Locations']['exclude']}")
+            issues.append(f"Excluded Locations: {summary['Locations']['exclude']}")
+
+        # Grant Controls operator
+        if summary.get("Grant Operator") == "OR":
+            issues.append(f"Grant Controls operator is OR, builtInControls: {summary['Grant Controls']}")
 
         if issues:
             findings.append({
@@ -135,7 +152,7 @@ if __name__ == "__main__":
 
     print_summary(policies)
 
-    # --- Generate structured findings summary
+    # --- Generate structured security summary
     findings = generate_security_flags(policies)
     if findings:
         print("\n=== Security Concern Summary ===")
