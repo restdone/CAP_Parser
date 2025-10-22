@@ -1,5 +1,7 @@
 # CAP_Parser
-* Use on your own risk...
+/// This is a quick and dirty tool to catch obvious mistake in Conditional Access Policy 
+<img width="818" height="101" alt="image" src="https://github.com/user-attachments/assets/49e0cfd3-1686-45ec-9341-59025ec4f4fd" />
+
 A tool to make Azure Conditional Access Policer easier to read
 
 Step 1. Get the CAP Json
