@@ -1,4 +1,5 @@
 # CAP_Parser
+* Use on your own risk...
 A tool to make Azure Conditional Access Policer easier to read
 
 Step 1. Get the CAP Json
